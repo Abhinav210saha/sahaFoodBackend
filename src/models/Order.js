@@ -24,6 +24,11 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    menuItem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MenuItem",
+      default: null,
+    },
     itemPrice: {
       type: Number,
       required: true,
@@ -42,6 +47,15 @@ const orderSchema = new mongoose.Schema(
     deliveryTime: {
       type: String,
       default: "25 mins",
+    },
+    deliverySlotType: {
+      type: String,
+      enum: ["asap", "scheduled"],
+      default: "asap",
+    },
+    scheduledFor: {
+      type: Date,
+      default: null,
     },
     address: {
       type: addressSnapshotSchema,

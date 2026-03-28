@@ -22,9 +22,34 @@ const uploadImageToCloudinary = (fileBuffer) =>
     uploadStream.end(fileBuffer);
   });
 
-export const getBanners = async (_req, res) => {
+const parseDateValue = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const isBannerWithinSchedule = (banner, now = new Date()) => {
+  const startsOk = !banner.startsAt || new Date(banner.startsAt) <= now;
+  const endsOk = !banner.endsAt || new Date(banner.endsAt) >= now;
+  return startsOk && endsOk;
+};
+
+export const getBanners = async (req, res) => {
   const banners = await Banner.find().sort({ createdAt: -1 });
-  return res.json(banners);
+  const includeAll = String(req.query.includeAll || "").toLowerCase() === "true";
+
+  if (includeAll) {
+    return res.json(
+      banners.map((banner) => ({
+        ...banner.toObject(),
+        isCurrentlyLive: banner.isActive && isBannerWithinSchedule(banner),
+      }))
+    );
+  }
+
+  const liveBanners = banners.filter((banner) => banner.isActive && isBannerWithinSchedule(banner));
+  return res.json(liveBanners);
 };
 
 export const createBanner = async (req, res) => {
@@ -46,6 +71,8 @@ export const createBanner = async (req, res) => {
       heroTitleText: req.body.heroTitleText || "",
       heroMetaText: req.body.heroMetaText || "",
       isActive: req.body.isActive !== undefined ? toBoolean(req.body.isActive) : true,
+      startsAt: parseDateValue(req.body.startsAt),
+      endsAt: parseDateValue(req.body.endsAt),
     };
 
     const banner = await Banner.create(payload);
@@ -74,6 +101,8 @@ export const updateBanner = async (req, res) => {
     };
 
     if (payload.isActive !== undefined) payload.isActive = toBoolean(payload.isActive);
+    if (payload.startsAt !== undefined) payload.startsAt = parseDateValue(payload.startsAt);
+    if (payload.endsAt !== undefined) payload.endsAt = parseDateValue(payload.endsAt);
 
     const banner = await Banner.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
 

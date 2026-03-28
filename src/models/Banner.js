@@ -51,6 +51,14 @@ const bannerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    startsAt: {
+      type: Date,
+      default: null,
+    },
+    endsAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

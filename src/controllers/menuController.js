@@ -51,6 +51,12 @@ export const createMenuItem = async (req, res) => {
       deliveryTime: req.body.deliveryTime || "25-30 mins",
       isAvailable: req.body.isAvailable !== undefined ? toBoolean(req.body.isAvailable) : true,
       isFeatured: req.body.isFeatured !== undefined ? toBoolean(req.body.isFeatured) : false,
+      trackInventory: req.body.trackInventory !== undefined ? toBoolean(req.body.trackInventory) : false,
+      stockQty: req.body.stockQty !== undefined ? Math.max(0, Number(req.body.stockQty) || 0) : 0,
+      lowStockThreshold:
+        req.body.lowStockThreshold !== undefined
+          ? Math.max(0, Number(req.body.lowStockThreshold) || 0)
+          : 5,
     };
 
     const item = await MenuItem.create(payload);
@@ -83,6 +89,10 @@ export const updateMenuItem = async (req, res) => {
     if (payload.rating !== undefined) payload.rating = Number(payload.rating);
     if (payload.isAvailable !== undefined) payload.isAvailable = toBoolean(payload.isAvailable);
     if (payload.isFeatured !== undefined) payload.isFeatured = toBoolean(payload.isFeatured);
+    if (payload.trackInventory !== undefined) payload.trackInventory = toBoolean(payload.trackInventory);
+    if (payload.stockQty !== undefined) payload.stockQty = Math.max(0, Number(payload.stockQty) || 0);
+    if (payload.lowStockThreshold !== undefined)
+      payload.lowStockThreshold = Math.max(0, Number(payload.lowStockThreshold) || 0);
 
     const item = await MenuItem.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
 
