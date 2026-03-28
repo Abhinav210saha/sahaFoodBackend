@@ -7,6 +7,7 @@ import menuRoutes from "./routes/menuRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use((error, _req, res, next) => {
   if (!error) return next();

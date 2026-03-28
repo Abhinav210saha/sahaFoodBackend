@@ -76,6 +76,13 @@ export const placeOrder = async (req, res) => {
     const totalPrice = safeItemPrice * safeQuantity;
     const parsedMenuItemId = parseMenuItemReference(menuItemId);
     const slot = parseDeliverySlot(req.body);
+    const paymentMethod = req.body.paymentMethod === "online" ? "online" : "cod";
+    const paymentStatus = paymentMethod === "online" ? String(req.body.paymentStatus || "") : "pending";
+    const paymentId = String(req.body.paymentId || "");
+
+    if (paymentMethod === "online" && paymentStatus !== "paid") {
+      return res.status(400).json({ message: "Successful online payment is required" });
+    }
 
     await reserveMenuItemStock(parsedMenuItemId, safeQuantity);
 
@@ -89,6 +96,9 @@ export const placeOrder = async (req, res) => {
       deliveryTime: deliveryTime || "25 mins",
       deliverySlotType: slot.deliverySlotType,
       scheduledFor: slot.scheduledFor,
+      paymentMethod,
+      paymentStatus: paymentMethod === "online" ? "paid" : "pending",
+      paymentId,
       address: {
         label: selectedAddress.label,
         line1: selectedAddress.line1,
@@ -112,6 +122,7 @@ export const placeOrder = async (req, res) => {
       `Total: Rs.${order.totalPrice}`,
       `Delivery time: ${order.deliveryTime}`,
       `Slot: ${order.deliverySlotType === "scheduled" ? `Scheduled (${new Date(order.scheduledFor).toLocaleString()})` : "ASAP"}`,
+      `Payment: ${order.paymentMethod === "online" ? `Online (${order.paymentStatus})` : "Cash on Delivery"}`,
       `Address (${selectedAddress.label}): ${mapAddressText(selectedAddress)}`,
     ].join("\n");
 
@@ -136,6 +147,14 @@ export const placeBulkOrders = async (req, res) => {
     const selectedAddress = user.addresses.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: "Selected address not found" });
+    }
+
+    const paymentMethod = req.body.paymentMethod === "online" ? "online" : "cod";
+    const paymentStatus = paymentMethod === "online" ? String(req.body.paymentStatus || "") : "pending";
+    const paymentId = String(req.body.paymentId || "");
+
+    if (paymentMethod === "online" && paymentStatus !== "paid") {
+      return res.status(400).json({ message: "Successful online payment is required" });
     }
 
     const sanitizedItems = items
@@ -181,6 +200,9 @@ export const placeBulkOrders = async (req, res) => {
         deliveryTime: item.deliveryTime,
         deliverySlotType: item.deliverySlotType,
         scheduledFor: item.scheduledFor,
+        paymentMethod,
+        paymentStatus: paymentMethod === "online" ? "paid" : "pending",
+        paymentId,
         address: addressSnapshot,
       }))
     );
@@ -199,6 +221,7 @@ export const placeBulkOrders = async (req, res) => {
       "Items:",
       ...lines,
       `Grand Total: Rs.${grandTotal}`,
+      `Payment: ${paymentMethod === "online" ? "Online (paid)" : "Cash on Delivery"}`,
       `Address (${selectedAddress.label}): ${mapAddressText(selectedAddress)}`,
     ].join("\n");
 
