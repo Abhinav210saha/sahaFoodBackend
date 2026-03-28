@@ -22,6 +22,12 @@ const uploadImageToCloudinary = (fileBuffer) =>
     uploadStream.end(fileBuffer);
   });
 
+const parseKeywords = (value) =>
+  String(value || "")
+    .split(",")
+    .map((word) => word.trim().toLowerCase())
+    .filter(Boolean);
+
 export const getMenuItems = async (_req, res) => {
   const items = await MenuItem.find().sort({ createdAt: -1 });
   return res.json(items);
@@ -40,6 +46,7 @@ export const createMenuItem = async (req, res) => {
       price: Number(req.body.price),
       category: req.body.category,
       image: uploaded.secure_url,
+      keywords: parseKeywords(req.body.keywords),
       rating: req.body.rating ? Number(req.body.rating) : 4.5,
       deliveryTime: req.body.deliveryTime || "25-30 mins",
       isAvailable: req.body.isAvailable !== undefined ? toBoolean(req.body.isAvailable) : true,
@@ -71,6 +78,7 @@ export const updateMenuItem = async (req, res) => {
       image: imageUrl,
     };
 
+    if (payload.keywords !== undefined) payload.keywords = parseKeywords(payload.keywords);
     if (payload.price !== undefined) payload.price = Number(payload.price);
     if (payload.rating !== undefined) payload.rating = Number(payload.rating);
     if (payload.isAvailable !== undefined) payload.isAvailable = toBoolean(payload.isAvailable);

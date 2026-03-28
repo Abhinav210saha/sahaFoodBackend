@@ -25,6 +25,10 @@ const menuItemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    keywords: {
+      type: [String],
+      default: [],
+    },
     rating: {
       type: Number,
       default: 4.5,
