@@ -1,4 +1,5 @@
 import { User } from "../models/User.js";
+import { getWebPushPublicKey } from "../config/push.js";
 
 const sortAddresses = (addresses) => [...addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
 
@@ -107,4 +108,46 @@ export const deleteAddress = async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: error.message || "Failed to delete address" });
   }
+};
+
+export const getPushPublicKey = (_req, res) => {
+  return res.json({ publicKey: getWebPushPublicKey() });
+};
+
+export const subscribePush = async (req, res) => {
+  const subscription = req.body.subscription;
+  if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+    return res.status(400).json({ message: "Valid subscription is required" });
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const endpoint = subscription.endpoint;
+  const exists = user.pushSubscriptions.some((sub) => sub?.endpoint === endpoint);
+  if (!exists) {
+    user.pushSubscriptions.push(subscription);
+    await user.save();
+  }
+
+  return res.json({ message: "Push subscription saved" });
+};
+
+export const unsubscribePush = async (req, res) => {
+  const endpoint = String(req.body.endpoint || "");
+  if (!endpoint) {
+    return res.status(400).json({ message: "Endpoint is required" });
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  user.pushSubscriptions = user.pushSubscriptions.filter((sub) => sub?.endpoint !== endpoint);
+  await user.save();
+
+  return res.json({ message: "Push subscription removed" });
 };

@@ -2,6 +2,7 @@ import { Order } from "../models/Order.js";
 import { User } from "../models/User.js";
 import { MenuItem } from "../models/MenuItem.js";
 import mongoose from "mongoose";
+import { sendPushNotification } from "../config/push.js";
 
 const ORDER_STATUS_SEQUENCE = ["placed", "preparing", "out_for_delivery", "delivered"];
 const VALID_ADMIN_STATUSES = [...ORDER_STATUS_SEQUENCE, "cancelled"];
@@ -264,6 +265,30 @@ export const updateOrderStatus = async (req, res) => {
 
   order.status = status;
   await order.save();
+
+  const customer = await User.findById(order.user);
+  if (customer?.pushSubscriptions?.length) {
+    const payload = {
+      title: "Order Status Updated",
+      body: `${order.itemName}: ${status.replaceAll("_", " ").toUpperCase()}`,
+      orderId: String(order._id),
+      status: order.status,
+      url: "/orders",
+    };
+
+    const results = await Promise.all(
+      customer.pushSubscriptions.map((subscription) => sendPushNotification(subscription, payload))
+    );
+
+    const hasExpired = results.some((result) => result.reason === 410 || result.reason === 404);
+    if (hasExpired) {
+      customer.pushSubscriptions = customer.pushSubscriptions.filter((_, idx) => {
+        const reason = results[idx]?.reason;
+        return reason !== 410 && reason !== 404;
+      });
+      await customer.save();
+    }
+  }
 
   return res.json(order);
 };
