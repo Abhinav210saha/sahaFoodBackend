@@ -34,6 +34,7 @@ const parseMenuItemReference = (menuItemId) => {
 };
 
 const normalizePincode = (value) => String(value || "").replace(/\D/g, "");
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
 const isAddressServiceable = async (address) => {
   const config = await DeliveryConfig.findOne();
@@ -43,14 +44,47 @@ const isAddressServiceable = async (address) => {
 
   const pincodeRules = Array.isArray(config.serviceablePincodes) ? config.serviceablePincodes : [];
   const cityRules = Array.isArray(config.serviceableCities) ? config.serviceableCities : [];
+  const zoneRules = Array.isArray(config.serviceableZones) ? config.serviceableZones.filter((zone) => zone?.isActive !== false) : [];
 
   const normalizedPincode = normalizePincode(address?.pincode);
-  const normalizedCity = String(address?.city || "").trim().toLowerCase();
+  const normalizedCity = normalizeText(address?.city);
+  const normalizedState = normalizeText(address?.state);
+  const searchableAddressText = [
+    address?.line1,
+    address?.line2,
+    address?.landmark,
+    address?.label,
+  ]
+    .map((value) => normalizeText(value))
+    .filter(Boolean)
+    .join(" ");
   const hasPincodeRules = pincodeRules.length > 0;
   const hasCityRules = cityRules.length > 0;
+  const hasZoneRules = zoneRules.length > 0;
 
-  if (!hasPincodeRules && !hasCityRules) {
+  if (!hasPincodeRules && !hasCityRules && !hasZoneRules) {
     return { allowed: true, message: "" };
+  }
+
+  if (hasZoneRules) {
+    const zoneMatch = zoneRules.some((zone) => {
+      const zoneState = normalizeText(zone.state);
+      const zoneCity = normalizeText(zone.city);
+      const zoneArea = normalizeText(zone.area);
+      const zonePincodes = Array.isArray(zone.pincodes) ? zone.pincodes.map(normalizePincode).filter(Boolean) : [];
+
+      const stateOk = !zoneState || zoneState === normalizedState;
+      const cityOk = !zoneCity || zoneCity === normalizedCity;
+      const areaOk = !zoneArea || searchableAddressText.includes(zoneArea);
+      const pincodeOk = zonePincodes.length === 0 || zonePincodes.includes(normalizedPincode);
+
+      return stateOk && cityOk && areaOk && pincodeOk;
+    });
+
+    return {
+      allowed: zoneMatch,
+      message: config.comingSoonMessage || "We are reaching your area very soon.",
+    };
   }
 
   if (hasPincodeRules) {

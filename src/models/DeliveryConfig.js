@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const deliveryConfigSchema = new mongoose.Schema(
   {
+    // Single settings document guard
     singletonKey: {
       type: String,
       default: "default",
@@ -13,6 +14,21 @@ const deliveryConfigSchema = new mongoose.Schema(
     },
     serviceablePincodes: {
       type: [String],
+      default: [],
+    },
+    serviceableZones: {
+      type: [
+        new mongoose.Schema(
+          {
+            state: { type: String, trim: true, default: "" },
+            city: { type: String, trim: true, default: "" },
+            area: { type: String, trim: true, default: "" },
+            pincodes: { type: [String], default: [] },
+            isActive: { type: Boolean, default: true },
+          },
+          { _id: true }
+        ),
+      ],
       default: [],
     },
     enforceServiceability: {
