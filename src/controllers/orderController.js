@@ -33,19 +33,38 @@ const parseMenuItemReference = (menuItemId) => {
   return String(menuItemId);
 };
 
-const isCityServiceable = async (city) => {
+const normalizePincode = (value) => String(value || "").replace(/\D/g, "");
+
+const isAddressServiceable = async (address) => {
   const config = await DeliveryConfig.findOne();
-  if (!config || !config.enforceServiceability || !config.serviceableCities?.length) {
+  if (!config || !config.enforceServiceability) {
     return { allowed: true, message: "" };
   }
 
-  const normalizedCity = String(city || "").trim().toLowerCase();
-  const matches = config.serviceableCities.some(
-    (serviceCity) => String(serviceCity || "").trim().toLowerCase() === normalizedCity
-  );
+  const pincodeRules = Array.isArray(config.serviceablePincodes) ? config.serviceablePincodes : [];
+  const cityRules = Array.isArray(config.serviceableCities) ? config.serviceableCities : [];
+
+  const normalizedPincode = normalizePincode(address?.pincode);
+  const normalizedCity = String(address?.city || "").trim().toLowerCase();
+  const hasPincodeRules = pincodeRules.length > 0;
+  const hasCityRules = cityRules.length > 0;
+
+  if (!hasPincodeRules && !hasCityRules) {
+    return { allowed: true, message: "" };
+  }
+
+  if (hasPincodeRules) {
+    const pincodeMatch = pincodeRules.some((servicePincode) => normalizePincode(servicePincode) === normalizedPincode);
+    return {
+      allowed: pincodeMatch,
+      message: config.comingSoonMessage || "We are reaching your area very soon.",
+    };
+  }
+
+  const cityMatch = cityRules.some((serviceCity) => String(serviceCity || "").trim().toLowerCase() === normalizedCity);
 
   return {
-    allowed: matches,
+    allowed: cityMatch,
     message: config.comingSoonMessage || "We are reaching your area very soon.",
   };
 };
@@ -90,7 +109,7 @@ export const placeOrder = async (req, res) => {
       return res.status(404).json({ message: "Selected address not found" });
     }
 
-    const serviceability = await isCityServiceable(selectedAddress.city);
+    const serviceability = await isAddressServiceable(selectedAddress);
     if (!serviceability.allowed) {
       return res.status(400).json({ message: serviceability.message });
     }
@@ -173,7 +192,7 @@ export const placeBulkOrders = async (req, res) => {
       return res.status(404).json({ message: "Selected address not found" });
     }
 
-    const serviceability = await isCityServiceable(selectedAddress.city);
+    const serviceability = await isAddressServiceable(selectedAddress);
     if (!serviceability.allowed) {
       return res.status(400).json({ message: serviceability.message });
     }

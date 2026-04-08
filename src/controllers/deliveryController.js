@@ -1,6 +1,7 @@
 import { DeliveryConfig } from "../models/DeliveryConfig.js";
 
 const normalizeCity = (value) => String(value || "").trim();
+const normalizePincode = (value) => String(value || "").replace(/\D/g, "");
 
 const parseCities = (value) => {
   if (Array.isArray(value)) {
@@ -12,6 +13,21 @@ const parseCities = (value) => {
       String(value || "")
         .split(/[\n,]/)
         .map(normalizeCity)
+        .filter(Boolean)
+    )
+  );
+};
+
+const parsePincodes = (value) => {
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.map(normalizePincode).filter(Boolean)));
+  }
+
+  return Array.from(
+    new Set(
+      String(value || "")
+        .split(/[\n,]/)
+        .map(normalizePincode)
         .filter(Boolean)
     )
   );
@@ -30,6 +46,7 @@ export const getDeliveryConfigPublic = async (_req, res) => {
 
   return res.json({
     serviceableCities: config.serviceableCities,
+    serviceablePincodes: config.serviceablePincodes,
     enforceServiceability: config.enforceServiceability,
     comingSoonMessage: config.comingSoonMessage,
   });
@@ -45,6 +62,10 @@ export const upsertDeliveryConfig = async (req, res) => {
 
   if (req.body.serviceableCities !== undefined) {
     config.serviceableCities = parseCities(req.body.serviceableCities);
+  }
+
+  if (req.body.serviceablePincodes !== undefined) {
+    config.serviceablePincodes = parsePincodes(req.body.serviceablePincodes);
   }
 
   if (req.body.enforceServiceability !== undefined) {

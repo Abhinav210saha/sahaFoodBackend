@@ -11,6 +11,10 @@ const deliveryConfigSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    serviceablePincodes: {
+      type: [String],
+      default: [],
+    },
     enforceServiceability: {
       type: Boolean,
       default: true,
