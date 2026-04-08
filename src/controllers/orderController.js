@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import { MenuItem } from "../models/MenuItem.js";
 import mongoose from "mongoose";
 import { sendPushNotification } from "../config/push.js";
+import { DeliveryConfig } from "../models/DeliveryConfig.js";
 
 const ORDER_STATUS_SEQUENCE = ["placed", "preparing", "out_for_delivery", "delivered"];
 const VALID_ADMIN_STATUSES = [...ORDER_STATUS_SEQUENCE, "cancelled"];
@@ -30,6 +31,23 @@ const parseDeliverySlot = (body) => {
 const parseMenuItemReference = (menuItemId) => {
   if (!menuItemId || !mongoose.Types.ObjectId.isValid(menuItemId)) return null;
   return String(menuItemId);
+};
+
+const isCityServiceable = async (city) => {
+  const config = await DeliveryConfig.findOne();
+  if (!config || !config.enforceServiceability || !config.serviceableCities?.length) {
+    return { allowed: true, message: "" };
+  }
+
+  const normalizedCity = String(city || "").trim().toLowerCase();
+  const matches = config.serviceableCities.some(
+    (serviceCity) => String(serviceCity || "").trim().toLowerCase() === normalizedCity
+  );
+
+  return {
+    allowed: matches,
+    message: config.comingSoonMessage || "We are reaching your area very soon.",
+  };
 };
 
 const reserveMenuItemStock = async (menuItemId, quantity, checkOnly = false) => {
@@ -70,6 +88,11 @@ export const placeOrder = async (req, res) => {
     const selectedAddress = user.addresses.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: "Selected address not found" });
+    }
+
+    const serviceability = await isCityServiceable(selectedAddress.city);
+    if (!serviceability.allowed) {
+      return res.status(400).json({ message: serviceability.message });
     }
 
     const safeQuantity = Math.max(1, Number(quantity) || 1);
@@ -148,6 +171,11 @@ export const placeBulkOrders = async (req, res) => {
     const selectedAddress = user.addresses.id(addressId);
     if (!selectedAddress) {
       return res.status(404).json({ message: "Selected address not found" });
+    }
+
+    const serviceability = await isCityServiceable(selectedAddress.city);
+    if (!serviceability.allowed) {
+      return res.status(400).json({ message: serviceability.message });
     }
 
     const paymentMethod = req.body.paymentMethod === "online" ? "online" : "cod";
@@ -328,3 +356,4 @@ export const getSalesDashboard = async (_req, res) => {
     statusFlow: ORDER_STATUS_SEQUENCE,
   });
 };
+

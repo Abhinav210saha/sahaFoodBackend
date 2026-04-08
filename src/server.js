@@ -8,6 +8,7 @@ import bannerRoutes from "./routes/bannerRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import deliveryRoutes from "./routes/deliveryRoutes.js";
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 app.use((error, _req, res, next) => {
   if (!error) return next();
@@ -78,3 +80,4 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+
