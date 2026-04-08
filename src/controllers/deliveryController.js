@@ -43,6 +43,9 @@ const getOrCreateConfig = async () => {
 
 export const getDeliveryConfigPublic = async (_req, res) => {
   const config = await getOrCreateConfig();
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
 
   return res.json({
     serviceableCities: config.serviceableCities,
@@ -54,6 +57,9 @@ export const getDeliveryConfigPublic = async (_req, res) => {
 
 export const getDeliveryConfigAdmin = async (_req, res) => {
   const config = await getOrCreateConfig();
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
   return res.json(config);
 };
 
