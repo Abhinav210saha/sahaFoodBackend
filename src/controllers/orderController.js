@@ -68,10 +68,11 @@ const isAddressServiceable = async (address) => {
     const zoneArea = normalizeText(zone.area);
     const zonePincodes = Array.isArray(zone.pincodes) ? zone.pincodes.map(normalizePincode).filter(Boolean) : [];
 
-    if (zoneState !== normalizedState || zoneCity !== normalizedCity) return false;
-    const areaMatched = zoneArea && searchableAddressText.includes(zoneArea);
     const pincodeMatched = zonePincodes.length > 0 && zonePincodes.includes(normalizedPincode);
-    return areaMatched || pincodeMatched;
+    if (pincodeMatched) return true;
+
+    if (zoneState !== normalizedState || zoneCity !== normalizedCity) return false;
+    return Boolean(zoneArea && searchableAddressText.includes(zoneArea));
   });
 
   return {
