@@ -20,7 +20,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .filter(Boolean);
 
 const isTrustedAppOrigin = (origin) =>
-  /^http:\/\/localhost(?::\d+)?$/i.test(origin) ||
+  /^https?:\/\/localhost(?::\d+)?$/i.test(origin) ||
   /^capacitor:\/\/localhost$/i.test(origin) ||
   /^ionic:\/\/localhost$/i.test(origin);
 
