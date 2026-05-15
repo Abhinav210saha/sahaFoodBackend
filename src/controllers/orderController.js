@@ -38,13 +38,12 @@ const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
 const isAddressServiceable = async (address) => {
   const config = await DeliveryConfig.findOne();
-  if (!config || !config.enforceServiceability) {
+  if (!config) {
     return { allowed: true, message: "" };
   }
 
-  const pincodeRules = Array.isArray(config.serviceablePincodes) ? config.serviceablePincodes : [];
-  const cityRules = Array.isArray(config.serviceableCities) ? config.serviceableCities : [];
   const zoneRules = Array.isArray(config.serviceableZones) ? config.serviceableZones.filter((zone) => zone?.isActive !== false) : [];
+  const outOfRangeMessage = config.comingSoonMessage || "We are reaching your area very soon.";
 
   const normalizedPincode = normalizePincode(address?.pincode);
   const normalizedCity = normalizeText(address?.city);
@@ -58,48 +57,26 @@ const isAddressServiceable = async (address) => {
     .map((value) => normalizeText(value))
     .filter(Boolean)
     .join(" ");
-  const hasPincodeRules = pincodeRules.length > 0;
-  const hasCityRules = cityRules.length > 0;
-  const hasZoneRules = zoneRules.length > 0;
 
-  if (!hasPincodeRules && !hasCityRules && !hasZoneRules) {
+  if (!zoneRules.length) {
     return { allowed: true, message: "" };
   }
 
-  if (hasZoneRules) {
-    const zoneMatch = zoneRules.some((zone) => {
-      const zoneState = normalizeText(zone.state);
-      const zoneCity = normalizeText(zone.city);
-      const zoneArea = normalizeText(zone.area);
-      const zonePincodes = Array.isArray(zone.pincodes) ? zone.pincodes.map(normalizePincode).filter(Boolean) : [];
+  const zoneMatch = zoneRules.some((zone) => {
+    const zoneState = normalizeText(zone.state);
+    const zoneCity = normalizeText(zone.city);
+    const zoneArea = normalizeText(zone.area);
+    const zonePincodes = Array.isArray(zone.pincodes) ? zone.pincodes.map(normalizePincode).filter(Boolean) : [];
 
-      const stateOk = !zoneState || zoneState === normalizedState;
-      const cityOk = !zoneCity || zoneCity === normalizedCity;
-      const areaOk = !zoneArea || searchableAddressText.includes(zoneArea);
-      const pincodeOk = zonePincodes.length === 0 || zonePincodes.includes(normalizedPincode);
-
-      return stateOk && cityOk && areaOk && pincodeOk;
-    });
-
-    return {
-      allowed: zoneMatch,
-      message: config.comingSoonMessage || "We are reaching your area very soon.",
-    };
-  }
-
-  if (hasPincodeRules) {
-    const pincodeMatch = pincodeRules.some((servicePincode) => normalizePincode(servicePincode) === normalizedPincode);
-    return {
-      allowed: pincodeMatch,
-      message: config.comingSoonMessage || "We are reaching your area very soon.",
-    };
-  }
-
-  const cityMatch = cityRules.some((serviceCity) => String(serviceCity || "").trim().toLowerCase() === normalizedCity);
+    if (zoneState !== normalizedState || zoneCity !== normalizedCity) return false;
+    const areaMatched = zoneArea && searchableAddressText.includes(zoneArea);
+    const pincodeMatched = zonePincodes.length > 0 && zonePincodes.includes(normalizedPincode);
+    return areaMatched || pincodeMatched;
+  });
 
   return {
-    allowed: cityMatch,
-    message: config.comingSoonMessage || "We are reaching your area very soon.",
+    allowed: zoneMatch,
+    message: outOfRangeMessage,
   };
 };
 

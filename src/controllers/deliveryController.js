@@ -1,23 +1,7 @@
 import { DeliveryConfig } from "../models/DeliveryConfig.js";
 
-const normalizeCity = (value) => String(value || "").trim();
 const normalizePincode = (value) => String(value || "").replace(/\D/g, "");
 const normalizeText = (value) => String(value || "").trim();
-
-const parseCities = (value) => {
-  if (Array.isArray(value)) {
-    return Array.from(new Set(value.map(normalizeCity).filter(Boolean)));
-  }
-
-  return Array.from(
-    new Set(
-      String(value || "")
-        .split(/[\n,]/)
-        .map(normalizeCity)
-        .filter(Boolean)
-    )
-  );
-};
 
 const parsePincodes = (value) => {
   if (Array.isArray(value)) {
@@ -62,10 +46,10 @@ export const getDeliveryConfigPublic = async (_req, res) => {
   res.set("Expires", "0");
 
   return res.json({
-    serviceableCities: config.serviceableCities,
-    serviceablePincodes: config.serviceablePincodes,
+    serviceableCities: [],
+    serviceablePincodes: [],
     serviceableZones: config.serviceableZones,
-    enforceServiceability: config.enforceServiceability,
+    enforceServiceability: true,
     comingSoonMessage: config.comingSoonMessage,
   });
 };
@@ -81,23 +65,8 @@ export const getDeliveryConfigAdmin = async (_req, res) => {
 export const upsertDeliveryConfig = async (req, res) => {
   const config = await getOrCreateConfig();
 
-  if (req.body.serviceableCities !== undefined) {
-    config.serviceableCities = parseCities(req.body.serviceableCities);
-  }
-
-  if (req.body.serviceablePincodes !== undefined) {
-    config.serviceablePincodes = parsePincodes(req.body.serviceablePincodes);
-  }
-
   if (req.body.serviceableZones !== undefined) {
     config.serviceableZones = parseZones(req.body.serviceableZones);
-  }
-
-  if (req.body.enforceServiceability !== undefined) {
-    config.enforceServiceability =
-      typeof req.body.enforceServiceability === "boolean"
-        ? req.body.enforceServiceability
-        : String(req.body.enforceServiceability).toLowerCase() === "true";
   }
 
   if (req.body.comingSoonMessage !== undefined) {
