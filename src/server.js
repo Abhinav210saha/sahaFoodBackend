@@ -19,10 +19,20 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isTrustedAppOrigin = (origin) =>
+  /^http:\/\/localhost(?::\d+)?$/i.test(origin) ||
+  /^capacitor:\/\/localhost$/i.test(origin) ||
+  /^ionic:\/\/localhost$/i.test(origin);
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.length === 0 ||
+        allowedOrigins.includes(origin) ||
+        isTrustedAppOrigin(origin)
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
