@@ -38,12 +38,14 @@ const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
 const isAddressServiceable = async (address) => {
   const config = await DeliveryConfig.findOne();
+  const defaultMessage = "We are reaching your area very soon.";
+
   if (!config) {
-    return { allowed: true, message: "" };
+    return { allowed: false, message: defaultMessage };
   }
 
   const zoneRules = Array.isArray(config.serviceableZones) ? config.serviceableZones.filter((zone) => zone?.isActive !== false) : [];
-  const outOfRangeMessage = config.comingSoonMessage || "We are reaching your area very soon.";
+  const outOfRangeMessage = config.comingSoonMessage || defaultMessage;
 
   const normalizedPincode = normalizePincode(address?.pincode);
   const normalizedCity = normalizeText(address?.city);
@@ -59,7 +61,7 @@ const isAddressServiceable = async (address) => {
     .join(" ");
 
   if (!zoneRules.length) {
-    return { allowed: true, message: "" };
+    return { allowed: false, message: outOfRangeMessage };
   }
 
   const zoneMatch = zoneRules.some((zone) => {
