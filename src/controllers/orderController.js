@@ -73,8 +73,10 @@ const isAddressServiceable = async (address) => {
     const pincodeMatched = zonePincodes.length > 0 && zonePincodes.includes(normalizedPincode);
     if (pincodeMatched) return true;
 
-    if (zoneState !== normalizedState || zoneCity !== normalizedCity) return false;
-    return Boolean(zoneArea && searchableAddressText.includes(zoneArea));
+    if (zoneCity && zoneCity !== normalizedCity) return false;
+    if (zoneState && zoneState !== normalizedState) return false;
+    if (zoneArea) return searchableAddressText.includes(zoneArea);
+    return Boolean(zoneCity || zoneState);
   });
 
   return {
